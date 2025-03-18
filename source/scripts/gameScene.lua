@@ -1,6 +1,18 @@
 local pd = playdate
 local gfx = pd.graphics
 
+TAGS = {
+    Player = 1,
+    Enemy = X,
+    Wall = X,
+}
+
+Z_INDEXES = {
+    Player = 100,
+    Enemy = 200,
+    Wall = 300,
+}
+
 local ldtk <const> = LDtk
 
 ldtk.load("levels/world.ldtk", false)
@@ -8,8 +20,14 @@ ldtk.load("levels/world.ldtk", false)
 class('GameScene').extends()
 
 function GameScene:init()
-    print("GameScene:init()")
     self:goToLevel("Level_0")
+    self.spawnX = 12 * 16
+    self.spawnY = 5 * 16
+    -- (12, 5) are grid coordinates. 16 is the tile sizes to get the pixel coordinates.
+
+    -- Creating player 
+    -- assigning player to a player property in the game scene
+    self.player = Player(self.spawnX, self.spawnY)
 end
 
 function GameScene:goToLevel(level_name)
@@ -24,9 +42,6 @@ function GameScene:goToLevel(level_name)
     for layer_name, layer in pairs(ldtk.get_layers(level_name)) do
         if layer.tiles then
             print("Creating tilemap for layer: "..layer_name)
-            print("Layer_count - layer_index = layer.zindex")
-            -- print("Layer_count: "..layer_count)
-            -- print("Layer_index: "..layer_index)
             local tilemap = ldtk.create_tilemap(level_name, layer_name)
 
             local layerSprite = gfx.sprite.new()
