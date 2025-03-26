@@ -7,12 +7,14 @@ local gfx = pd.graphics
 TAGS = {
     Player = 1,
     Hazard = 2,
+    Pickup = 3,
 }
 
 -- Z indexes are used to determine the order of rendering. The higher the number, the closer to the camera it is.
 Z_INDEXES = {
     Player = 100,
     Hazard = 20,
+    Pickup = 50,
 }
 
 local ldtk <const> = LDtk
@@ -95,6 +97,7 @@ function GameScene:goToLevel(level_name)
     end
 
     -- Get all entities from level using LDTK library
+    -- Entities MUST be named in this for loop to be recognized
     for _, entity in ipairs(ldtk.get_entities(level_name) or {}) do
         local entityX, entityY = entity.position.x, entity.position.y
         local entityName = entity.name
@@ -102,6 +105,9 @@ function GameScene:goToLevel(level_name)
             Spike(entityX, entityY)
         elseif entityName == "Spikeball" then
             Spikeball(entityX, entityY, entity)
+        elseif entityName == "Ability" then
+            print("Creating Ability with entity:", entity)
+            Ability(entityX, entityY, entity)
         end
     end
 

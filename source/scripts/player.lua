@@ -37,8 +37,8 @@ function Player:init(x,y, gameManager)
     self.minimumAirSpeed = 0.5
 
     -- Abilities
-    self.doubleJumpAbility = true
-    self.dashAbility = true
+    self.doubleJumpAbility = false
+    self.dashAbility = false
 
     -- Double Jump
     self.doubleJumpAvailable = true
@@ -59,7 +59,7 @@ end
 function Player:collisionResponse(other)
 -- Overwriting built in collisionResponse method
     local tag = other:getTag()
-    if tag == TAGS.Hazard then
+    if tag == TAGS.Hazard or tag == TAGS.Pickup then
         return gfx.sprite.kCollisionTypeOverlap
     end
     return gfx.sprite.kCollisionTypeSlide
@@ -131,6 +131,9 @@ function Player:handleMovementAndCollisions()
         if collisionTag == TAGS.Hazard then
             print("Collision Tag = Hazard | Setting Died = True")
             died = true
+        elseif collisionTag == TAGS.Pickup then
+            print("Collision Tag = Pickup | Picking up ability")
+            collisionObject:pickUp(self) -- passing in self so that the ability can access the player
         end
     end
     -- print("Touching Ground: " .. tostring(self.touchingGround))
