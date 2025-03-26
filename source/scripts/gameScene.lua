@@ -25,12 +25,38 @@ function GameScene:init()
     self.spawnY = 5 * 16
     -- (12, 5) are grid coordinates. 16 is the tile sizes to get the pixel coordinates.
 
-    -- Creating player 
+    -- Creating player
     -- assigning player to a player property in the game scene
-    self.player = Player(self.spawnX, self.spawnY)
+    -- We pass in "self" to the player so that the player can access the game scene
+    self.player = Player(self.spawnX, self.spawnY, self)
 end
 
+function GameScene:enterRoom(direction)
+-- enterRoom() is a method that calls goToLevel() with the level name of the neighbour in the specified direction.
+-- It then moves the player to the spawn point of the new level without creating a new player object, keeping player information.
+-- ARGS: direction is a string that can be "north", "south", "east", "west"
+    local level = ldtk.get_neighbours(self.levelName, direction)[1]
+    self:goToLevel(level)
+    -- when we call goToLevel we remove all sprites including the player
+    self.player:add()
+    local spawnX, spawnY
+    if direction == "north" then
+        spawnX, spawnY = self.player.x, 240
+    elseif direction == "south" then
+        spawnX, spawnY = self.player.x, 0
+    elseif direction == "east" then
+        spawnX, spawnY = 0, self.player.y
+    elseif direction == "west" then
+        spawnX, spawnY = 400, self.player.y
+    end
+    self.player:moveTo(spawnX, spawnY)
+    -- saving spawn location for respawning
+    self.spawnX, self.spawnY = spawnX, spawnY
+
+end
 function GameScene:goToLevel(level_name)
+-- goToLevel() is a method that changes the level of the game scene. It removes all sprites from the game scene and creates a new tilemap for the new level.
+-- ARGS: level_name is a string from the LDtk file that represents the level name.
 
     gfx.sprite.removeAll()
     print("GameScene:goToLevel("..level_name..")")
@@ -39,6 +65,7 @@ function GameScene:goToLevel(level_name)
     -- print("printing layers:")
     -- printTable(layerstb)
 
+    self.levelName = level_name
     for layer_name, layer in pairs(ldtk.get_layers(level_name)) do
         if layer.tiles then
             print("Creating tilemap for layer: "..layer_name)

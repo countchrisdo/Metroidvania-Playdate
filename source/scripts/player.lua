@@ -5,7 +5,9 @@ class('Player').extends(AnimatedSprite)
 -- AnimatedSprite library implements a state machine for sprites
 -- A state machine is a way to organize code that changes the behavior of an object 
 
-function Player:init(x,y)
+function Player:init(x,y, gameManager)
+    -- Storing Game manager as property
+    self.gameManager = gameManager
     -- State Machine
     local playerImageTable = gfx.imagetable.new("images/player-table-16-16")
     -- -- super.init calls initialization method of the parent class
@@ -122,6 +124,17 @@ function Player:handleMovementAndCollisions()
         self.globalFlip = gfx.kImageFlippedX
     elseif self.xVelocity > 0 then
         self.globalFlip = gfx.kImageUnflipped
+    end
+
+    -- Entering new room based on player position
+    if self.x < 0 then
+        self.gameManager:enterRoom("west")
+    elseif self.x > 400 then
+        self.gameManager:enterRoom("east")
+    elseif self.y < 0 then
+        self.gameManager:enterRoom("north")
+    elseif self.y > 240 then
+        self.gameManager:enterRoom("south")
     end
 end
 
