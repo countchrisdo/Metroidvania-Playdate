@@ -1,16 +1,18 @@
 local pd = playdate
 local gfx = pd.graphics
 
+
+
+-- Tags are used to determine the type of object for collision detection.
 TAGS = {
     Player = 1,
-    Enemy = X,
-    Wall = X,
+    Hazard = 2,
 }
 
+-- Z indexes are used to determine the order of rendering. The higher the number, the closer to the camera it is.
 Z_INDEXES = {
     Player = 100,
-    Enemy = 200,
-    Wall = 300,
+    Hazard = 20,
 }
 
 local ldtk <const> = LDtk
@@ -29,6 +31,11 @@ function GameScene:init()
     -- assigning player to a player property in the game scene
     -- We pass in "self" to the player so that the player can access the game scene
     self.player = Player(self.spawnX, self.spawnY, self)
+end
+
+function GameScene:resetPlayer()
+-- resetPlayer() method: called by player in player:die() to respawn
+    self.player:moveTo(self.spawnX, self.spawnY, self)
 end
 
 function GameScene:enterRoom(direction)
@@ -66,7 +73,7 @@ function GameScene:goToLevel(level_name)
     -- printTable(layerstb)
 
     self.levelName = level_name
-    for layer_name, layer in pairs(ldtk.get_layers(level_name)) do
+    for layer_name, layer in pairs(ldtk.get_layers(level_name) or {}) do
         if layer.tiles then
             print("Creating tilemap for layer: "..layer_name)
             local tilemap = ldtk.create_tilemap(level_name, layer_name)
@@ -86,6 +93,18 @@ function GameScene:goToLevel(level_name)
 
         end
     end
+
+    -- Get all entities from level using LDTK library
+    for _, entity in ipairs(ldtk.get_entities(level_name) or {}) do
+        local entityX, entityY = entity.position.x, entity.position.y
+        local entityName = entity.name
+        if entityName == "Spike" then
+            Spike(entityX, entityY)
+        elseif entityName == "Spikeball" then
+            Spikeball(entityX, entityY, entity)
+        end
+    end
+
 end
 
 function printTable(t, indent)

@@ -6,17 +6,17 @@ class('Player').extends(AnimatedSprite)
 -- A state machine is a way to organize code that changes the behavior of an object 
 
 function Player:init(x,y, gameManager)
+-- init() method: inits objects
+-- ARGS: x, y are the pixel coordinates of the player / gameManager is the game manager object
     -- Storing Game manager as property
     self.gameManager = gameManager
-    -- State Machine
     local playerImageTable = gfx.imagetable.new("images/player-table-16-16")
-    -- -- super.init calls initialization method of the parent class
-    Player.super.init(self, playerImageTable)
+    Player.super.init(self, playerImageTable) -- super.init calls init method of parent class (AnimatedSprite)
 
+    -- State Machine
     -- Creating states
     self:addState("idle", 1, 1)
     self:addState("run", 1, 3, {tickStep = 4})
-    -- -- tickStep is speed of the animation (default value = 1). It is the amount of frames (fps) between changing sprites
     self:addState("jump", 4, 4)
     self:addState("dash", 4, 4)
     self:playAnimation()
@@ -25,8 +25,7 @@ function Player:init(x,y, gameManager)
     self:moveTo(x, y)
     self:setZIndex(Z_INDEXES.Player)
     self:setTag(TAGS.Player)
-    self:setCollideRect(3, 3, 10, 13)
-    -- --  Setting collision for player, collision using pd sdk library.
+    self:setCollideRect(3, 3, 10, 13) -- Standard Playdate SDK collision method
 
     -- Physics Properties
     self.xVelocity = 0
@@ -50,22 +49,29 @@ function Player:init(x,y, gameManager)
     self.dashMinimumSpeed = 3
     self.dashDrag = 0.8
 
-    -- Player State
+    -- Player States
     self.touchingGround = false
     self.touchingCeiling = false
     self.touchingWall = false
+    self.dead = false
 end
 
--- Overwrite collisionResponse method
-function Player:collisionResponse()
+function Player:collisionResponse(other)
+-- Overwriting built in collisionResponse method
+    local tag = other:getTag()
+    if tag == TAGS.Hazard then
+        return gfx.sprite.kCollisionTypeOverlap
+    end
     return gfx.sprite.kCollisionTypeSlide
 end
 
 function Player:update()
-    self:updateAnimation()
-    -- -- UpdateAnimation is a method from AnimatedSprite library
+    if self.dead then
+        return
+    end
+
+    self:updateAnimation() -- method from AnimatedSprite library
     self:handleState()
-    -- print("Current State" .. self.currentState)
     self:handleMovementAndCollisions()
 end
 
@@ -99,22 +105,32 @@ function Player:handleMovementAndCollisions()
     self.touchingGround = false
     self.touchingCeiling = false
     self.touchingWall = false
+    local died = false -- died =/ dead | died = action that happens when player dies. dead = state/boolean value.
     
     for i=1, length do
         local collision = collisions[i]
-        if collision.normal.y == -1 then
-        -- a normal is a vector that is perpendicular to the surface player is colliding with. If the collision normal is -1, it means the player is touching the ground.
-            self.touchingGround = true
-            self.doubleJumpAvailable = true
-            self.dashAvailable = true
-        elseif collision.normal.y == 1 then
-            self.touchingCeiling = true
-        end
+        local collisionType = collision.type
+        local collisionObject = collision.other
+        local collisionTag = collisionObject:getTag()
+        if collisionType == gfx.sprite.kCollisionTypeSlide then
+            if collision.normal.y == -1 then
+            -- a normal is a vector that is perpendicular to the surface player is colliding with. If the collision normal is -1, it means the player is touching the ground.
+                self.touchingGround = true
+                self.doubleJumpAvailable = true
+                self.dashAvailable = true
+            elseif collision.normal.y == 1 then
+                self.touchingCeiling = true
+            end
+            -- if you're touching a wall, the x collision normal will be either 1 or -1 because collision normal is a vector that is perpendicular to the surface player is colliding with. So we can just check if the x collision normal is not 0. 
+            if collision.normal.x ~= 0 then
+                self.touchingWall = true
+                self.xVelocity = 0
+            end
 
-        -- if you're touching a wall, the x collision normal will be either 1 or -1 because collision normal is a vector that is perpendicular to the surface player is colliding with. So we can just check if the x collision normal is not 0. 
-        if collision.normal.x ~= 0 then
-            self.touchingWall = true
-            self.xVelocity = 0
+        end
+        if collisionTag == TAGS.Hazard then
+            print("Collision Tag = Hazard | Setting Died = True")
+            died = true
         end
     end
     -- print("Touching Ground: " .. tostring(self.touchingGround))
@@ -136,6 +152,24 @@ function Player:handleMovementAndCollisions()
     elseif self.y > 240 then
         self.gameManager:enterRoom("south")
     end
+
+    if died then
+        self:die()
+    end
+end
+
+function Player:die()
+    -- die() method: stops player, set's dead to true, delays, then sets dead to false and resets the player
+    -- to respawn the player we need the gameScene (gameManager) bc it stores where the player spawned
+    self.xVelocity = 0
+    self.yVelocity = 0
+    self.dead = true
+    self:setCollisionsEnabled(false)
+    pd.timer.performAfterDelay(200, function()
+        self:setCollisionsEnabled(true)
+        self.gameManager:resetPlayer()
+        self.dead = false
+    end)
 end
 
 -- Input Helper Functions
@@ -169,10 +203,8 @@ end
 
 -- State transitions
 function Player:changeToIdleState()
-    print("Changing to idle state")
     self.xVelocity = 0
     self:changeState("idle")
-    print("Current State: " .. self.currentState)
 end
 
 function Player:changeToRunState(direction)

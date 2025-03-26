@@ -11,6 +11,8 @@ import "scripts/libraries/LDtk.lua"
 -- Game
 import "scripts/gameScene"
 import "scripts/player"
+import "scripts/spike"
+import "scripts/spikeball"
 
 GameScene()
 
