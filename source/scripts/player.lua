@@ -16,6 +16,7 @@ function Player:init(x,y)
     self:addState("run", 1, 3, {tickStep = 4})
     -- -- tickStep is speed of the animation (default value = 1). It is the amount of frames (fps) between changing sprites
     self:addState("jump", 4, 4)
+    self:addState("dash", 4, 4)
     self:playAnimation()
 
     -- Sprite Properties
@@ -33,6 +34,19 @@ function Player:init(x,y)
     self.jumpVelocity = -6
     self.drag = 0.1
     self.minimumAirSpeed = 0.5
+
+    -- Abilities
+    self.doubleJumpAbility = true
+    self.dashAbility = true
+
+    -- Double Jump
+    self.doubleJumpAvailable = true
+    
+    -- Dash
+    self.dashAvailable = true
+    self.dashSpeed = 8
+    self.dashMinimumSpeed = 3
+    self.dashDrag = 0.8
 
     -- Player State
     self.touchingGround = false
@@ -67,7 +81,11 @@ function Player:handleState()
         self:applyGravity()
         self:applyDrag(self.drag)
         self:handleAirInput()
-
+    elseif self.currentState == "dash" then
+        self:applyDrag(self.dashDrag)
+        if math.abs(self.xVelocity) <= self.dashMinimumSpeed then
+            self:changeToFallState()
+        end
     end
 end
 
@@ -83,9 +101,10 @@ function Player:handleMovementAndCollisions()
     for i=1, length do
         local collision = collisions[i]
         if collision.normal.y == -1 then
-        -- a normal is a vector that is perpendicular to the surface player is colliding with
-        -- if the collision normal is -1, it means the player is touching the ground.
+        -- a normal is a vector that is perpendicular to the surface player is colliding with. If the collision normal is -1, it means the player is touching the ground.
             self.touchingGround = true
+            self.doubleJumpAvailable = true
+            self.dashAvailable = true
         elseif collision.normal.y == 1 then
             self.touchingCeiling = true
         end
@@ -111,6 +130,8 @@ function Player:handleGroundInput()
     -- using buttonIsPressed instead of buttonJustPressed because it's like a cheap way to add buffering to the inputs by changing states. Using buttonJustPressed for jumping because jumping is a one time action.
     if pd.buttonJustPressed(pd.kButtonA) then
         self:changeToJumpState()
+    elseif pd.buttonJustPressed(pd.kButtonB) and self.dashAbility and self.dashAvailable then
+        self:changeToDashState()
     elseif pd.buttonIsPressed(pd.kButtonLeft) then
         self:changeToRunState("left")
     elseif pd.buttonIsPressed(pd.kButtonRight) then
@@ -121,7 +142,12 @@ function Player:handleGroundInput()
 end
 
 function Player:handleAirInput()
-    if pd.buttonIsPressed(pd.kButtonLeft) then
+    if pd.buttonJustPressed(pd.kButtonA) and self.doubleJumpAvailable and self.doubleJumpAbility then
+        self.doubleJumpAvailable = false
+        self:changeToJumpState()
+    elseif pd.buttonJustPressed(pd.kButtonB) and self.dashAbility and self.dashAvailable then
+        self:changeToDashState()
+    elseif pd.buttonIsPressed(pd.kButtonLeft) then
         self.xVelocity = -self.maxSpeed
     elseif pd.buttonIsPressed(pd.kButtonRight) then
         self.xVelocity = self.maxSpeed
@@ -130,11 +156,14 @@ end
 
 -- State transitions
 function Player:changeToIdleState()
+    print("Changing to idle state")
     self.xVelocity = 0
     self:changeState("idle")
+    print("Current State: " .. self.currentState)
 end
 
 function Player:changeToRunState(direction)
+    print("Changing to run state")
     if direction == "left" then
         self.xVelocity = -self.maxSpeed
         self.globalFlip = gfx.kImageFlippedX
@@ -143,13 +172,42 @@ function Player:changeToRunState(direction)
         self.globalFlip = gfx.kImageUnflipped
     end
     self:changeState("run")
+    print("Current State: " .. self.currentState)
 end
 
 function Player:changeToJumpState()
+    print("Changing to jump state")
     self.yVelocity = self.jumpVelocity
     self:changeState("jump")
+    print("Current State: " .. self.currentState)
 end
 
+function Player:changeToFallState()
+    print("Changing to fall state")
+    -- Fall state is the same as jump state but without the jump velocity
+    self:changeState("jump")
+    print("Current State: " .. self.currentState)
+end
+
+function Player:changeToDashState()
+    print("Changing to dash state")
+    self.dashAvailable = false
+    self.yVelocity = 0
+    if pd.buttonIsPressed(pd.kButtonLeft) then
+        self.xVelocity = -self.dashSpeed
+    elseif pd.buttonIsPressed(pd.kButtonRight) then
+        self.xVelocity = self.dashSpeed
+    else
+        -- If no direction is pressed, dash in the direction the player is facing using globalFlip
+        if self.globalFlip == gfx.kImageFlippedX then
+            self.xVelocity = -self.dashSpeed
+        else
+            self.xVelocity = self.dashSpeed
+        end
+    end
+    self:changeState("dash")
+    print("Current State: " .. self.currentState)
+end
 -- Physics Helper Functions
 function Player:applyGravity()
     self.yVelocity += self.gravity
