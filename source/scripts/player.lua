@@ -85,7 +85,7 @@ function Player:updateJumpBuffer()
     if self.jumpBuffer <= 0 then
         self.jumpBuffer = 0
     end
-    if pd.buttonIsPressed(pd.kButtonA) then
+    if pd.buttonJustPressed(pd.kButtonA) then
         self.jumpBuffer = self.jumpBufferAmount
     end
 end
