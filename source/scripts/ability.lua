@@ -3,9 +3,10 @@ local gfx <const> = playdate.graphics
 class('Ability').extends(gfx.sprite)
 
 function Ability:init(x, y, entity)
-    print("Ability is being created")
-    printTable(entity)
     self.fields = entity.fields
+    if self.fields.pickedUp then
+        return
+    end
 
     -- I had to change the name from Ability to Abilities for some reason
     -- look into this
@@ -30,6 +31,9 @@ function Ability:pickUp(player)
     elseif self.abilityName == "Dash" then
         player.dashAbility = true
     end
+    -- Set the pickedUp field to true so that the ability is not picked up again
+    -- entities information persists between levels. So we can keep track of what has been picked up
+    self.fields.pickedUp = true
     self:remove()
     
 end

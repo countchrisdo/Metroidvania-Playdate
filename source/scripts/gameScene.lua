@@ -1,6 +1,6 @@
-local pd = playdate
-local gfx = pd.graphics
-
+local pd <const> = playdate
+local gfx <const> = pd.graphics
+local ldtk <const> = LDtk
 
 
 -- Tags are used to determine the type of object for collision detection.
@@ -17,9 +17,14 @@ Z_INDEXES = {
     Pickup = 50,
 }
 
-local ldtk <const> = LDtk
+-- Improving runtime by precomputing levels
+local usePrecomputedLevels = not pd.isSimulator
 
-ldtk.load("levels/world.ldtk", false)
+ldtk.load("levels/world.ldtk", usePrecomputedLevels)
+
+if pd.isSimulator then
+    ldtk.export_to_lua_files()
+end
 
 class('GameScene').extends()
 

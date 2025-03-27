@@ -1,6 +1,6 @@
-name=Game
-author=
-description=
-bundleID=
+name=Metroidvania Prototype
+author=CountChrisdo
+description=A Metroidvania prototype for learning purposes.
+bundleID=com.countchrisdo.metroidvania
 version=1.0.0
 buildNumber=1

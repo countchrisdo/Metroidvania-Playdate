@@ -36,6 +36,9 @@ function Player:init(x,y, gameManager)
     self.drag = 0.1
     self.minimumAirSpeed = 0.5
 
+    self.jumpBufferAmount = 5
+    self.jumpBuffer = 0
+
     -- Abilities
     self.doubleJumpAbility = false
     self.dashAbility = false
@@ -71,8 +74,24 @@ function Player:update()
     end
 
     self:updateAnimation() -- method from AnimatedSprite library
+
+    self:updateJumpBuffer()
     self:handleState()
     self:handleMovementAndCollisions()
+end
+
+function Player:updateJumpBuffer()
+    self.jumpBuffer -= 1
+    if self.jumpBuffer <= 0 then
+        self.jumpBuffer = 0
+    end
+    if pd.buttonIsPressed(pd.kButtonA) then
+        self.jumpBuffer = self.jumpBufferAmount
+    end
+end
+
+function Player:playerJumped()
+    return self.jumpBuffer > 0
 end
 
 function Player:handleState()
@@ -178,7 +197,7 @@ end
 -- Input Helper Functions
 function Player:handleGroundInput()
     -- using buttonIsPressed instead of buttonJustPressed because it's like a cheap way to add buffering to the inputs by changing states. Using buttonJustPressed for jumping because jumping is a one time action.
-    if pd.buttonJustPressed(pd.kButtonA) then
+    if self:playerJumped() then
         self:changeToJumpState()
     elseif pd.buttonJustPressed(pd.kButtonB) and self.dashAbility and self.dashAvailable then
         self:changeToDashState()
@@ -192,7 +211,7 @@ function Player:handleGroundInput()
 end
 
 function Player:handleAirInput()
-    if pd.buttonJustPressed(pd.kButtonA) and self.doubleJumpAvailable and self.doubleJumpAbility then
+    if self:playerJumped() and self.doubleJumpAvailable and self.doubleJumpAbility then
         self.doubleJumpAvailable = false
         self:changeToJumpState()
     elseif pd.buttonJustPressed(pd.kButtonB) and self.dashAbility and self.dashAvailable then
@@ -226,6 +245,7 @@ end
 function Player:changeToJumpState()
     print("Changing to jump state")
     self.yVelocity = self.jumpVelocity
+    self.jumpBuffer = 0
     self:changeState("jump")
     print("Current State: " .. self.currentState)
 end
